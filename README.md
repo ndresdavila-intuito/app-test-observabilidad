@@ -4,11 +4,8 @@ Este repositorio contiene una aplicación de prueba desarrollada en Python que g
 La aplicación simula el procesamiento de solicitudes y exporta trazas, métricas y logs a un OpenTelemetry Collector mediante el protocolo OTLP/gRPC.
 
 Cada pocos segundos, el programa:
-
 Crea una traza que representa una operación simulada.
-
 Registra una métrica que cuenta el número de solicitudes procesadas.
-
 Envía logs informativos al colector y a la consola local.
 
 ## App de prueba para enviar observabilidad.
@@ -29,4 +26,6 @@ pip install -r requirements.txt
 
 pip install -r requirements_freeze.txt
 
-### python app_prueba.py
+### Ejecutar programa
+
+python app_prueba.py
