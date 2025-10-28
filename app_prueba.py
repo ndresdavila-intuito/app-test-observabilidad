@@ -14,17 +14,20 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 
-# Logs (empíricos, API experimental)
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+from opentelemetry.sdk._logs import LoggingHandler  # Este es el Handler oficial para logging
 
-# Cargar variables de entorno
+# ------------------- Variables de entorno -------------------
 load_dotenv()
 SERVICE_NAME = os.getenv("SERVICE_NAME", "app-prueba")
-OTEL_ENDPOINT = os.getenv("OTEL_COLLECTOR_ENDPOINT", "http://otel-collector.observabilidad.svc.cluster.local:4317")
+OTEL_ENDPOINT = os.getenv(
+    "OTEL_COLLECTOR_ENDPOINT",
+    "http://otel-collector.observabilidad.svc.cluster.local:4317",
+)
 
-# Recurso común
+# ------------------- Recurso común -------------------
 resource = Resource.create({"service.name": SERVICE_NAME})
 
 # ------------------- Traces -------------------
@@ -47,18 +50,27 @@ logger_provider = LoggerProvider(resource=resource)
 log_exporter = OTLPLogExporter(endpoint=OTEL_ENDPOINT, insecure=True)
 logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
-handler = logging.StreamHandler()
-handler.setLevel(logging.INFO)
+# Logger de Python normal con OTEL
 logger = logging.getLogger(SERVICE_NAME)
 logger.setLevel(logging.INFO)
-logger.addHandler(handler)
 
-# Loop de prueba
+# Handler para consola
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+logger.addHandler(console_handler)
+
+# Handler para OTEL Collector
+otel_handler = LoggingHandler(logger_provider=logger_provider, level=logging.INFO)
+logger.addHandler(otel_handler)
+
+# ------------------- Loop de prueba -------------------
 logger.info("Inicio de la aplicación de prueba.")
+
 while True:
     with tracer.start_as_current_span("procesar_peticion") as span:
         requests = randint(1, 100)
         span.set_attribute("valor.random", requests)
         counter.add(1, {"tipo": "aleatorio"})
-        logger.info(f"Procesadas {requests} solicitudes.")
+
+        logger.info(f"Procesadas {requests} solicitudes.")  # Consola + OTEL Collector
     time.sleep(3)
