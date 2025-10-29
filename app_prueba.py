@@ -8,13 +8,13 @@ from opentelemetry import trace, metrics
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
-from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.sdk._logs import LoggingHandler
 
 # ------------------- Variables de entorno -------------------
@@ -22,11 +22,12 @@ load_dotenv()
 SERVICE_NAME = os.getenv("SERVICE_NAME", "app-prueba")
 OTEL_ENDPOINT = os.getenv(
     "OTEL_COLLECTOR_ENDPOINT",
-    "http://otel-collector.observabilidad.svc.cluster.local:55681",
+    "otel-collector.observabilidad.svc.cluster.local:4317",  # gRPC port
 )
 OTEL_BEARER_TOKEN = os.getenv("OTEL_BEARER_TOKEN", "mi-token-secreto-123")
 
-HEADERS = {"Authorization": f"Bearer {OTEL_BEARER_TOKEN}"}
+# Metadata para enviar el token como Bearer
+HEADERS = [("authorization", f"Bearer {OTEL_BEARER_TOKEN}")]
 
 # ------------------- Recurso común -------------------
 resource = Resource.create({"service.name": SERVICE_NAME})
@@ -60,12 +61,13 @@ otel_handler = LoggingHandler(logger_provider=logger_provider, level=logging.INF
 logger.addHandler(otel_handler)
 
 # ------------------- Loop de prueba -------------------
-logger.info("Inicio de la aplicación de prueba con token seguro.")
+logger.info("Inicio de la aplicación de prueba con token seguro y gRPC.")
 
 while True:
     with tracer.start_as_current_span("procesar_peticion") as span:
         requests = randint(1, 100)
         span.set_attribute("valor.random", requests)
         counter.add(1, {"tipo": "aleatorio"})
-        logger.info(f"Procesadas {requests} solicitudes.")
+        #logger.info(f"Procesadas {requests} solicitudes.")
+        logger.error(f"Error al procesar documentos.", exc_info=True)
     time.sleep(3)
